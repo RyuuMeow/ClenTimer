@@ -2,6 +2,8 @@
 
 A small, always-on-top countdown timer for Windows. The frameless bar folds into a square when you start a timer. A white ring shows the remaining time.
 
+![ClenTimer showing 09:52 remaining beside a timed figure drawing and its reference photo](docs/images/drawing-practice.png)
+
 ## Download
 
 Get the installer or portable ZIP from the [latest release](https://github.com/RyuuMeow/ClenTimer/releases/latest). For the portable edition, extract the whole folder somewhere writable and run **ClenTimer.exe**. It saves your last duration in **ClenTimer.ini** beside the executable.
