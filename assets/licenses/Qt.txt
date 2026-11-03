@@ -1,0 +1,6 @@
+ClenTimer ships unmodified, dynamically linked Qt 6.9.0 libraries and plugins from Qt Base and Qt SVG.
+The Qt components are distributed under the GNU Lesser General Public License version 3.
+The corresponding Qt source trees are available at:
+https://github.com/qt/qtbase/tree/v6.9.0
+https://github.com/qt/qtsvg/tree/v6.9.0
+License texts accompany this notice. The Qt DLLs may be replaced with compatible modified builds.
