@@ -10,9 +10,10 @@ Get the installer or portable ZIP from the [latest release](https://github.com/R
 
 ## Controls
 
-- Type **1–99 minutes**, or hover over the number and scroll one minute at a time. The arrows adjust by 1, 5 or 10 minutes at the 10- and 30-minute thresholds.
+- Type **0.5 or 1–99 minutes**, or hover over the number and scroll one minute at a time. The arrows adjust by 1, 5 or 10 minutes at the 10- and 30-minute thresholds.
 - Press **Enter** or click **Play** to start. Pause and resume with the main button, or click the red **×** to cancel.
-- At zero, the digits blink red and a short chime plays three times. Click the **checkmark** to return to setup.
+- Toggle the square repeat button before starting to run consecutive rounds. White means repeat is on. After three chimes the next round starts automatically.
+- With repeat off, at zero, the digits blink red and a short chime plays three times. Click the **checkmark** to return to setup.
 - Drag the background to move the timer.
 
 ## Build on Windows

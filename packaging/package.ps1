@@ -21,4 +21,4 @@ Copy-Item "$($crt.FullName)/*.dll" $stage
 & "${env:ProgramFiles(x86)}/Inno Setup 6/ISCC.exe" /Q "$PSScriptRoot/setup.iss"
 if ($LASTEXITCODE) { throw 'Installer compilation failed.' }
 New-Item -ItemType File "$stage/portable.mode" | Out-Null
-Compress-Archive -Path "$stage/*" -DestinationPath "$dist/ClenTimer-1.10-x64-Portable.zip" -Force
+Compress-Archive -Path "$stage/*" -DestinationPath "$dist/ClenTimer-1.11-x64-Portable.zip" -Force

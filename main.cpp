@@ -10,6 +10,7 @@ class TimerWindow final : public QWidget {
     std::unique_ptr<QSettings> prefs = QFileInfo::exists(QCoreApplication::applicationDirPath()+"/portable.mode")
         ? std::make_unique<QSettings>(QCoreApplication::applicationDirPath()+"/ClenTimer.ini", QSettings::IniFormat)
         : std::make_unique<QSettings>("OrbitTimer","Orbit Timer"); // Keep existing installed preferences.
+    QPushButton *repeat;
     QLineEdit *minutes;
     int wheelRemainder = 0;
     QLabel *readout, *unit;
@@ -69,7 +70,6 @@ class TimerWindow final : public QWidget {
     }
     void face(QPushButton *b, QString glyph, QString tip) {
         b->setIcon(QIcon(QCoreApplication::applicationDirPath()+"/icons/"+glyph+".svg"));
-        b->setToolTip(tip);
         b->setAccessibleName(tip);
     }
     QPushButton *button(QString glyph, QString tip, int x, int y, int w, int h) {
@@ -80,9 +80,13 @@ class TimerWindow final : public QWidget {
         face(b,glyph,tip);
         return b;
     }
-    int value() const { return minutes->text().toInt(); }
+    double value() const { return minutes->hasAcceptableInput() ? minutes->text().toDouble() : 0; }
     void bump(int direction) {
-        int v = value();
+        if (value() < 1 || (value() == 1 && direction < 0)) {
+            minutes->setText(direction > 0 ? "1" : "0.5");
+            return;
+        }
+        int v = int(value());
         int band = v - (direction < 0);
         int step = band < 10 ? 1 : band < 30 ? 5 : 10;
         int limit = direction > 0 ? (v < 10 ? 10 : v < 30 ? 30 : 99)
@@ -122,10 +126,14 @@ class TimerWindow final : public QWidget {
         case Mode::Paused:
             face(action,"play-fill","繼續"); break;
         case Mode::Finished:
+            if (repeat->isChecked()) {
+                face(action,"play-fill","立即開始下一輪");
+            } else {
             end->hide();
             clockWidgets.removeOne(end);
             action->setFixedWidth(124);
             face(action,"check","完成");
+            }
             readout->setStyleSheet("color:#ff6060"); blink.start();
             playChime(); soundCount = 1; chime.start(); break;
         }
@@ -147,11 +155,20 @@ class TimerWindow final : public QWidget {
             bank = remaining();
             enter(bank ? Mode::Paused : Mode::Finished); break;
         case Mode::Paused: enter(Mode::Running); break;
-        case Mode::Finished: enter(Mode::Setup); break;
+        case Mode::Finished:
+            if (repeat->isChecked()) { bank = total; enter(Mode::Running); }
+            else enter(Mode::Setup);
+            break;
         }
     }
 protected:
     bool eventFilter(QObject *object, QEvent *event) override {
+        if ((object == minimize || object == closeButton) &&
+            (event->type() == QEvent::Enter || event->type() == QEvent::Leave)) {
+            const QString glyph = object == minimize ? "minus" : "x";
+            const QString suffix = event->type() == QEvent::Enter ? ".svg" : "-dim.svg";
+            static_cast<QPushButton *>(object)->setIcon(QIcon(QCoreApplication::applicationDirPath()+"/icons/"+glyph+suffix));
+        }
         if (object == minutes) {
             if (event->type() == QEvent::Leave || event->type() == QEvent::Hide)
                 wheelRemainder = 0;
@@ -164,7 +181,7 @@ protected:
                 const int steps = wheelRemainder / QWheelEvent::DefaultDeltasPerStep;
                 wheelRemainder %= QWheelEvent::DefaultDeltasPerStep;
                 if (steps)
-                    minutes->setText(QString::number(qBound(1, value() + steps, 99)));
+                    minutes->setText(QString::number((qBound(0, int(value()) + steps, 99) == 0 ? 0.5 : qBound(1, int(value()) + steps, 99))));
                 wheel->accept();
                 return true;
             }
@@ -232,6 +249,9 @@ public:
           QPushButton#go, QPushButton#end {border-radius:13px;}
           QPushButton#end {background:#925a5a;}
           QPushButton#end:hover {background:#a16767;}
+          QPushButton#windowControl:hover {background:transparent;}
+          QPushButton#repeat {background:#777;border-radius:13px;}
+          QPushButton#repeat:checked {background:#f5f5f5;}
           QPushButton#step {background:#282828;border:1px solid #393939;border-radius:10px;}
           QPushButton#step:hover {background:#404040;}
           QPushButton#go {background:#ededeb;color:#141414;font-weight:600;}
@@ -240,8 +260,12 @@ public:
           QLineEdit {background:#202020;border:1px solid #343434;border-radius:12px;selection-background-color:#777;}
           QLineEdit:focus {border-color:#898989;}
         )");
-        minimize=button("minus","最小化",334,18,29,25);
-        closeButton=button("x","關閉",365,18,29,25);
+        minimize=button("minus-dim","最小化",334,18,29,25);
+        closeButton=button("x-dim","關閉",365,18,29,25);
+        for (auto button : {minimize,closeButton}) {
+            button->setObjectName("windowControl");
+            button->installEventFilter(this);
+        }
         unit=label("MIN",106,33,200,17);
         unit->setStyleSheet("color:#aaa;font:600 9px 'Segoe UI'");
         minutes=new QLineEdit(this);
@@ -249,15 +273,18 @@ public:
         minutes->setAccessibleName("分鐘");
         minutes->setGeometry(144,53,124,55);
         minutes->setAlignment(Qt::AlignCenter);
-        minutes->setMaxLength(2);
-        minutes->setValidator(new QIntValidator(1,99,this));
+        minutes->setMaxLength(3);
+        minutes->setValidator(new QRegularExpressionValidator(QRegularExpression(R"(0\.5|[1-9][0-9]?)"),this));
         minutes->setFont(QFont("Consolas",29,QFont::Bold));
-        minutes->setText(QString::number(qBound(1,prefs->value("minutes",25).toInt(),99)));
+        minutes->setText(QString::number(qBound(0.5,prefs->value("minutes",25).toDouble(),99.0)));
         readout=label("",66,50,280,61);
         readout->setFont(QFont("Consolas",35,QFont::Bold));
         less=button("caret-left","減少分鐘",91,62,36,36);
         more=button("caret-right","增加分鐘",285,62,36,36);
         for(auto b:{less,more}) b->setObjectName("step");
+        repeat=button("repeat","循環計時",101,122,34,34);
+        repeat->setObjectName("repeat");
+        repeat->setCheckable(true);
         start=button("play-fill","開始",144,122,124,34);
         start->setObjectName("go");
         connect(start,&QPushButton::clicked,this,[this]{activate();});
@@ -276,7 +303,7 @@ public:
         connect(action,&QPushButton::clicked,this,[this]{activate();});
         connect(minimize,&QPushButton::clicked,this,&QWidget::showMinimized);
         connect(closeButton,&QPushButton::clicked,this,&QWidget::close);
-        setupWidgets = {minutes, unit, less, more, start, minimize, closeButton};
+        setupWidgets = {repeat, minutes, unit, less, more, start, minimize, closeButton};
         clockWidgets = {readout, action, end};
         QEasingCurve ease(QEasingCurve::OutBack);
         ease.setOvershoot(0.60);
@@ -300,7 +327,15 @@ public:
             dim=!dim; readout->setStyleSheet(dim?"color:#773636":"color:#ff6060");
         });
         connect(&chime,&QTimer::timeout,this,[this]{
-            playChime(); if(++soundCount>=3) chime.stop();
+            if (soundCount < 3) {
+                playChime();
+                ++soundCount;
+            } else if (repeat->isChecked()) {
+                bank = total;
+                enter(Mode::Running);
+            } else {
+                chime.stop();
+            }
         });
         setFocusPolicy(Qt::StrongFocus);
         enter(Mode::Setup); setFocus();
