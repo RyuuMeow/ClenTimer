@@ -285,6 +285,13 @@ public:
         repeat=button("repeat","循環計時",101,122,34,34);
         repeat->setObjectName("repeat");
         repeat->setCheckable(true);
+        // Keep the glyph centered independently of the style's checked-button offset.
+        auto repeatGlyph = new QLabel(repeat);
+        repeatGlyph->setAttribute(Qt::WA_TransparentForMouseEvents);
+        repeatGlyph->setAlignment(Qt::AlignCenter);
+        repeatGlyph->setGeometry(repeat->rect());
+        repeatGlyph->setPixmap(repeat->icon().pixmap(repeat->iconSize(), devicePixelRatioF()));
+        repeat->setIcon(QIcon());
         start=button("play-fill","開始",144,122,124,34);
         start->setObjectName("go");
         connect(start,&QPushButton::clicked,this,[this]{activate();});
